@@ -1,0 +1,154 @@
+[
+  {
+    "display": "Network Source",
+    "canonical": "supplier",
+    "db": "campaign_source.supplier / entity.networkSource",
+    "purpose": "Show which supplier/network created the campaign source.",
+    "validation": "Must be one of approved supplier enums.",
+    "tech": "Keep visible for admin only; client must not see supplier source."
+  },
+  {
+    "display": "Brand Name",
+    "canonical": "merchantName",
+    "db": "supplier_campaign.raw_merchant_name + merchant.canonical_name",
+    "purpose": "Brand/advertiser/merchant shown in campaign table.",
+    "validation": "Not empty. Trim and de-duplicate spaces.",
+    "tech": "If canonical merchant exists, display canonical name; keep raw merchant in detail."
+  },
+  {
+    "display": "Brand Website Link",
+    "canonical": "brandWebsiteUrl / landingPageUrl",
+    "db": "merchant.website_url / campaign_source.landing_page_url",
+    "purpose": "Link to merchant/brand website or campaign landing page.",
+    "validation": "Valid URL or blank with NEEDS_REVIEW flag.",
+    "tech": "Do not use tracking URL here; this is website/landing link."
+  },
+  {
+    "display": "Brand Logo Link",
+    "canonical": "brandLogoUrl / campaignLogoUrl",
+    "db": "merchant.logo_url / campaign_source.logo_url",
+    "purpose": "Logo displayed in admin table/card.",
+    "validation": "Valid image URL or blank.",
+    "tech": "Should support image proxy/caching later."
+  },
+  {
+    "display": "Campaign Name",
+    "canonical": "campaignName",
+    "db": "supplier_campaign.campaign_name / canonical_campaign.display_name",
+    "purpose": "Campaign/offer name shown to admin.",
+    "validation": "Not empty.",
+    "tech": "May differ from Brand Name; do not merge blindly."
+  },
+  {
+    "display": "Primary Category",
+    "canonical": "primaryCategory",
+    "db": "merchant.primary_category / supplier_campaign.primary_category",
+    "purpose": "Main business category used for filters.",
+    "validation": "Must map to approved category or NEEDS_REVIEW.",
+    "tech": "Do not store offer text or country here."
+  },
+  {
+    "display": "Secondary Category",
+    "canonical": "secondaryCategory",
+    "db": "merchant.secondary_category / supplier_campaign.secondary_category",
+    "purpose": "More specific category/subcategory.",
+    "validation": "Nullable; if present must be approved subcategory.",
+    "tech": "Useful for advanced filtering."
+  },
+  {
+    "display": "Country",
+    "canonical": "countries",
+    "db": "campaign_source.countries / supplier_campaign.countries",
+    "purpose": "Eligible country/market for the campaign.",
+    "validation": "Valid ISO2 array or GLOBAL.",
+    "tech": "If global, store is_global=true and countries=[] or GLOBAL consistently."
+  },
+  {
+    "display": "Currency",
+    "canonical": "currency",
+    "db": "campaign_source.currency / supplier_campaign.currency",
+    "purpose": "Currency for payout/commission display.",
+    "validation": "Valid ISO4217 or blank with NEEDS_REVIEW.",
+    "tech": "Currency may differ from client payout currency later."
+  },
+  {
+    "display": "Campaign Type",
+    "canonical": "campaignType",
+    "db": "supplier_campaign.campaign_type",
+    "purpose": "Commercial model or flow type.",
+    "validation": "Approved enum only.",
+    "tech": "Do not use category for CPS; CPS belongs here or commission_type."
+  },
+  {
+    "display": "Campaign Description",
+    "canonical": "campaignDescription",
+    "db": "supplier_campaign.description",
+    "purpose": "General campaign details for admin review.",
+    "validation": "Nullable, but flag if all description fields are blank.",
+    "tech": "Long text should open in detail drawer, not crowd table."
+  },
+  {
+    "display": "Campaign Terms and Condition",
+    "canonical": "campaignTerms",
+    "db": "supplier_campaign.terms",
+    "purpose": "Campaign rules/terms for admin and compliance.",
+    "validation": "Nullable; if present must be sanitized.",
+    "tech": "Important for rewards eligibility."
+  },
+  {
+    "display": "Campaign Commission",
+    "canonical": "campaignCommissionDisplay",
+    "db": "campaign_source.gross_commission_display + commission_rule_count",
+    "purpose": "Summary commission displayed at campaign level.",
+    "validation": "Must not be used alone for final client payout if value is Up to/Multiple.",
+    "tech": "Add SupplierCommissionRule[] for multiple rules."
+  },
+  {
+    "display": "Campaign Tracking Link",
+    "canonical": "campaignTrackingLink",
+    "db": "campaign_source.tracking_url / tracking_link.supplier_tracking_url",
+    "purpose": "Supplier tracking or generated campaign tracking URL for admin.",
+    "validation": "Valid URL; hide from client-facing catalog unless wrapped by MBO link.",
+    "tech": "Client should get MBO tracking URL, not raw supplier URL."
+  },
+  {
+    "display": "Campaign Start Date",
+    "canonical": "campaignStartDate",
+    "db": "supplier_campaign.start_date / campaign_source.start_date",
+    "purpose": "Campaign live/start date.",
+    "validation": "Valid date or blank.",
+    "tech": "Do not confuse synced date with campaign start date."
+  },
+  {
+    "display": "Campaign End Date",
+    "canonical": "campaignEndDate",
+    "db": "supplier_campaign.end_date / campaign_source.end_date",
+    "purpose": "Campaign expiry/end date.",
+    "validation": "Valid date or blank.",
+    "tech": "Expired should drive campaign_status if supplier confirms."
+  },
+  {
+    "display": "Campaign Status",
+    "canonical": "campaignStatus",
+    "db": "supplier_campaign.campaign_status",
+    "purpose": "Campaign operational state, not join/application state.",
+    "validation": "ACTIVE, PAUSED, EXPIRED, SUSPENDED, DELETED, NEEDS_REVIEW.",
+    "tech": "Do not put notapplied here. notapplied belongs to Relationship Status."
+  },
+  {
+    "display": "Campaign Promotion Description",
+    "canonical": "promotionDescription",
+    "db": "supplier_campaign.promotion_text / offer_text",
+    "purpose": "Short offer/promotion text shown to admin.",
+    "validation": "Nullable. If populated, sanitize HTML.",
+    "tech": "Do not store as category."
+  },
+  {
+    "display": "Discount %",
+    "canonical": "discountPercent",
+    "db": "supplier_campaign.discount_percent / coupon.discount_percent / offer.discount_percent",
+    "purpose": "Percent discount shown for coupon/offer campaigns where available.",
+    "validation": "Nullable decimal; keep Discount Display for non-percent offers.",
+    "tech": ""
+  }
+]

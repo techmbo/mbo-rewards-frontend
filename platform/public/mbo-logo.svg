@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none" role="img" aria-label="MBO Rewards">
+  <rect width="40" height="40" rx="10" fill="#c9a227"/>
+  <text x="20" y="27" text-anchor="middle" fill="#0d1b3e" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="800">MBO</text>
+  <text x="52" y="26" fill="#ffffff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="700" letter-spacing="-0.02em">MBO Rewards</text>
+</svg>

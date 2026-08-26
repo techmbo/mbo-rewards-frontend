@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/mbointegratedPlatform",
+      "destination": "/mbointegratedPlatform/index.html"
+    },
+    {
+      "source": "/mbointegratedPlatform/(.*)",
+      "destination": "/mbointegratedPlatform/index.html"
+    }
+  ]
+}
