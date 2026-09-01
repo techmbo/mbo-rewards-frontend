@@ -183,11 +183,23 @@ export function FullRawPayloadPage() {
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="border-b border-slate-100 px-4 py-3 text-xs text-slate-500">
           {detail ? (
-            <>
-              Supplier: {displayText(detail.supplier)} · Resource: {displayText(detail.resourceKey)} ·
-              Status: {displayText(detail.processingStatus)} · Mapper:{" "}
-              {displayText(detail.mapperVersion)}
-            </>
+            <div className="space-y-1">
+              <div>
+                Network: {displayText(detail.network || detail.networkSource)} · Account:{" "}
+                {displayText(detail.networkAccountId)} · Object: {displayText(detail.sourceObject)} ·
+                Endpoint: {displayText(detail.endpointOrReport)}
+              </div>
+              <div>
+                Raw payload: {displayText(detail.rawPayloadId || detail.id)} · Sync run:{" "}
+                {displayText(detail.syncRunId)} · Fetched: {displayText(detail.fetchedAt)} · HTTP:{" "}
+                {detail.httpStatus ?? "—"} · Hash: {displayText(detail.payloadHash)?.slice?.(0, 12) || displayText(detail.payloadHash)}
+              </div>
+              <div>
+                Body: {displayText(detail.bodyKind)}
+                {detail.bodyRef ? ` · Ref: ${detail.bodyRef}` : ""} · API version:{" "}
+                {displayText(detail.apiVersion)} · Immutable source evidence
+              </div>
+            </div>
           ) : (
             "Local test / template payload — not written to the database"
           )}
@@ -195,7 +207,11 @@ export function FullRawPayloadPage() {
         <div className="bg-slate-950 p-4">
           <textarea
             value={jsonText}
-            onChange={(e) => setJsonText(e.target.value)}
+            onChange={(e) => {
+              if (selectedId) return;
+              setJsonText(e.target.value);
+            }}
+            readOnly={Boolean(selectedId)}
             spellCheck={false}
             className="h-[420px] w-full resize-y bg-transparent font-mono text-sm leading-relaxed text-emerald-300 outline-none"
           />

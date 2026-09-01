@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { FilterBar } from "../ui/FilterBar";
+import { useApi } from "../../hooks/useApi";
 import {
   NETWORK_CAMPAIGN_EMPTY_FILTERS,
   NETWORK_CAMPAIGN_FILTER_DEFINITIONS,
+  mergeFilterDefinitionsWithFacets,
 } from "../../pages/ops/networkCampaignFilters";
 
 export { NETWORK_CAMPAIGN_EMPTY_FILTERS };
@@ -12,9 +15,23 @@ export function NetworkCampaignFilterBar({
   onReset,
   excludeKeys = [],
 }) {
-  const filters = NETWORK_CAMPAIGN_FILTER_DEFINITIONS.filter(
-    (f) => !excludeKeys.includes(f.key),
+  const facetParams = useMemo(
+    () => ({
+      entityType: "campaign",
+      ...(values?.network ? { network: values.network } : {}),
+    }),
+    [values?.network],
   );
+  const facetsApi = useApi("/ops/imported-records/facets", facetParams);
+  const facets = facetsApi.data?.data ?? {};
+
+  const filters = useMemo(() => {
+    const merged = mergeFilterDefinitionsWithFacets(
+      NETWORK_CAMPAIGN_FILTER_DEFINITIONS,
+      facets,
+    );
+    return merged.filter((f) => !excludeKeys.includes(f.key));
+  }, [facets, excludeKeys]);
 
   return (
     <FilterBar

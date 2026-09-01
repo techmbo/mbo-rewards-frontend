@@ -106,7 +106,7 @@ export function AdminMboReceiptsPage() {
     <PageLayout
       eyebrow="Finance"
       title="MBO Receipts"
-      subtitle="Internal evidence of actual funds received by MBO. Only PAID network payment rows appear here."
+      subtitle="Internal evidence of actual funds received by MBO from bank/reconciliation facts only."
     >
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <Select
@@ -157,7 +157,7 @@ export function AdminMboReceiptsPage() {
           error={error}
           onRetry={refresh}
           emptyTitle="No MBO receipts"
-          emptyDescription="Receipts appear when orders have supplier payment status PAYMENT_RECEIVED."
+          emptyDescription="Receipts appear only when a bank/reconciliation fact records MBO actual receipt."
           page={page}
           onPageChange={setPage}
           totalPages={pagination?.totalPages}

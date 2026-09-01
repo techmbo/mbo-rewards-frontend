@@ -1,5 +1,6 @@
 /**
  * Shared Network Operations campaign filters — same bar as Campaigns (/data/entities).
+ * Dropdown options come from /ops/imported-records/facets (actual stored API values).
  */
 
 export const NETWORK_CAMPAIGN_EMPTY_FILTERS = {
@@ -18,6 +19,19 @@ export const NETWORK_CAMPAIGN_EMPTY_FILTERS = {
   preset: "",
 };
 
+const NETWORK_FALLBACK = [
+  { value: "optimise", label: "Optimise" },
+  { value: "trackier", label: "Trackier" },
+  { value: "boostiny", label: "Boostiny" },
+  { value: "partnerize", label: "Partnerize" },
+  { value: "impact", label: "Impact" },
+  { value: "awin", label: "Awin" },
+  { value: "admitad", label: "Admitad" },
+  { value: "cj", label: "CJ" },
+  { value: "rakuten", label: "Rakuten" },
+];
+
+/** Fallback until facets load — same mapped vocab the list fields use. */
 export const NETWORK_CAMPAIGN_FILTER_DEFINITIONS = [
   {
     key: "search",
@@ -28,13 +42,7 @@ export const NETWORK_CAMPAIGN_FILTER_DEFINITIONS = [
   {
     key: "network",
     label: "Network",
-    options: [
-      { value: "optimise", label: "Optimise" },
-      { value: "trackier", label: "Trackier" },
-      { value: "boostiny", label: "Boostiny" },
-      { value: "partnerize", label: "Partnerize" },
-      { value: "impact", label: "Impact" },
-    ],
+    options: NETWORK_FALLBACK,
   },
   {
     key: "recordType",
@@ -66,9 +74,9 @@ export const NETWORK_CAMPAIGN_FILTER_DEFINITIONS = [
     options: [
       { value: "ACTIVE", label: "Active" },
       { value: "PAUSED", label: "Paused" },
+      { value: "PENDING", label: "Pending" },
       { value: "EXPIRED", label: "Expired" },
-      { value: "INACTIVE", label: "Inactive" },
-      { value: "UNKNOWN", label: "Unknown" },
+      { value: "NOTAPPLIED", label: "Not Applied" },
     ],
   },
   {
@@ -76,12 +84,8 @@ export const NETWORK_CAMPAIGN_FILTER_DEFINITIONS = [
     label: "Relationship",
     options: [
       { value: "JOINED", label: "Joined" },
-      { value: "APPROVED", label: "Approved" },
       { value: "PENDING", label: "Pending" },
-      { value: "NOT_JOINED", label: "Not joined" },
-      { value: "REJECTED", label: "Rejected" },
-      { value: "SUSPENDED", label: "Suspended" },
-      { value: "UNKNOWN", label: "Unknown" },
+      { value: "NOT_JOINED", label: "Not Joined" },
     ],
   },
   {
@@ -95,8 +99,15 @@ export const NETWORK_CAMPAIGN_FILTER_DEFINITIONS = [
   {
     key: "campaignType",
     label: "Campaign Type",
-    type: "text",
-    placeholder: "CPS, CPA, CPL…",
+    options: [
+      { value: "CPS", label: "CPS" },
+      { value: "CPA", label: "CPA" },
+      { value: "CPL", label: "CPL" },
+      { value: "CPI", label: "CPI" },
+      { value: "CPC", label: "CPC" },
+      { value: "HYBRID", label: "Hybrid" },
+      { value: "TIERED", label: "Tiered" },
+    ],
   },
   {
     key: "category",
@@ -121,6 +132,39 @@ export const NETWORK_CAMPAIGN_FILTER_DEFINITIONS = [
   },
 ];
 
+const FACET_KEYS = new Set([
+  "network",
+  "sourceStatus",
+  "country",
+  "campaignStatus",
+  "relationshipStatus",
+  "campaignType",
+  "category",
+  "currency",
+  "isAssignable",
+]);
+
+/** Overlay /ops/imported-records/facets onto the shared filter bar. */
+export function mergeFilterDefinitionsWithFacets(definitions = NETWORK_CAMPAIGN_FILTER_DEFINITIONS, facets = {}) {
+  return definitions.map((def) => {
+    if (!FACET_KEYS.has(def.key)) return def;
+    const facetOptions = Array.isArray(facets[def.key])
+      ? facets[def.key].filter((o) => {
+          if (!o || o.value == null || o.value === "") return false;
+          if (def.key === "campaignStatus" && String(o.value).toUpperCase() === "UNKNOWN") return false;
+          if (def.key === "relationshipStatus" && String(o.value).toUpperCase() === "UNKNOWN") return false;
+          return true;
+        })
+      : [];
+    if (!facetOptions.length) return def;
+    const { type, placeholder, ...rest } = def;
+    return {
+      ...rest,
+      options: facetOptions,
+    };
+  });
+}
+
 /** Query params for /ops/imported-records (Campaigns + All Network Data). */
 export function buildImportedRecordsQuery(filters = {}, overrides = {}) {
   const f = { ...filters, ...overrides };
@@ -139,6 +183,7 @@ export function buildImportedRecordsQuery(filters = {}, overrides = {}) {
   if (f.currency?.trim()) query.currency = f.currency.trim();
   if (f.issue) query.issue = f.issue;
   if (f.preset) query.preset = f.preset;
+  if (f.groupBy) query.groupBy = f.groupBy;
   return query;
 }
 

@@ -67,6 +67,19 @@ export function displayText(value, fallback = "—") {
   return text;
 }
 
+/** Turn camelCase / snake_case source keys into a readable drawer label. */
+export function humanizeFieldLabel(key) {
+  const raw = String(key ?? "").trim();
+  if (!raw) return "";
+  const spaced = raw
+    .replace(/[_.]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+  return spaced.replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 /** Shorten table copy to a fixed word count; full text stays available via title/tooltip. */
 export function truncateWords(value, maxWords = 4, fallback = "—") {
   const text = displayText(value, "");

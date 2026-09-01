@@ -81,7 +81,7 @@ export function SupplierCommissionRulesPage() {
         label: <HeaderCell label={col.label} technical={col.technical} />,
         minWidth: 120,
         render: (row) => {
-          if (col.key === "ruleStatus" || col.key === "mappingStatus") {
+          if (col.key === "ruleStatus" || col.key === "mappingStatus" || col.key === "fieldMappingOutcome") {
             return row[col.key] != null ? <StatusPill status={row[col.key]} /> : "—";
           }
           if (col.key === "effectiveFrom" || col.key === "effectiveUntil") {

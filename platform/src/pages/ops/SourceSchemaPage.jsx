@@ -7,12 +7,36 @@ import { StatusPill } from "../../components/ui/StatusPill";
 import { displayDate, displayText } from "../../utils/display";
 import { NETWORK_SOURCE_OPTIONS } from "./networkFieldCatalog";
 
+const OUTCOME_OPTIONS = [
+  { value: "", label: "All outcomes" },
+  { value: "MAPPED", label: "Mapped" },
+  { value: "SOURCE_PRESENT_MAPPING_MISSING", label: "Mapping missing" },
+  { value: "SOURCE_ONLY", label: "Source only" },
+  { value: "REVIEW_REQUIRED", label: "Review required" },
+  { value: "VERIFY_LIVE", label: "Verify live" },
+];
+
+const SOURCE_OBJECT_OPTIONS = [
+  { value: "", label: "All objects" },
+  { value: "campaigns", label: "Campaigns" },
+  { value: "coupons", label: "Coupons" },
+  { value: "voucher_codes", label: "Voucher Codes" },
+  { value: "conversions", label: "Conversions" },
+  { value: "products", label: "Products" },
+  { value: "reporting", label: "Reporting" },
+  { value: "payments", label: "Payments" },
+];
+
+function formatRate(rate) {
+  if (rate == null || Number.isNaN(rate)) return "—";
+  return `${Math.round(rate * 100)}%`;
+}
+
 /**
- * v13 Source Schema — observed field/path/type layer from FieldRegistry.
- * Answers: “Is the source data actually present?”
+ * Source Schema Registry — observed field/path/type layer from immutable raw payloads.
  */
 export function SourceSchemaPage() {
-  const [filters, setFilters] = useState({ network: "", entity_type: "" });
+  const [filters, setFilters] = useState({ network: "", source_object: "", mapping_status: "" });
   const queryFilters = useMemo(
     () => Object.fromEntries(Object.entries(filters).filter(([, v]) => v)),
     [filters],
@@ -25,7 +49,7 @@ export function SourceSchemaPage() {
     () => [
       {
         key: "networkSource",
-        label: "Network Source",
+        label: "Network",
         minWidth: 120,
         render: (r) => displayText(r.networkSource || r.source),
       },
@@ -36,22 +60,28 @@ export function SourceSchemaPage() {
         render: (r) => displayText(r.sourceObject || r.entityType),
       },
       {
-        key: "fieldPath",
-        label: "Source Field / Path",
+        key: "sourcePath",
+        label: "Source Path",
         minWidth: 180,
-        render: (r) => displayText(r.fieldPath),
+        render: (r) => displayText(r.sourcePath || r.fieldPath),
       },
       {
-        key: "dataType",
-        label: "Data Type",
-        minWidth: 100,
-        render: (r) => displayText(r.dataType),
+        key: "sourceType",
+        label: "Type",
+        minWidth: 90,
+        render: (r) => displayText(r.sourceType || r.dataType),
       },
       {
-        key: "observedExample",
-        label: "Observed Example",
+        key: "sampleValue",
+        label: "Sample",
         minWidth: 140,
-        render: (r) => displayText(r.observedExample || r.sampleValue),
+        render: (r) => displayText(r.sampleValue || r.observedExample),
+      },
+      {
+        key: "occurrenceRate",
+        label: "Occurrence",
+        minWidth: 100,
+        render: (r) => displayText(formatRate(r.occurrenceRate)),
       },
       {
         key: "mboTarget",
@@ -60,16 +90,20 @@ export function SourceSchemaPage() {
         render: (r) => displayText(r.mboTarget || "—"),
       },
       {
-        key: "mappingStatus",
-        label: "Mapping Status",
-        minWidth: 130,
-        render: (r) => <StatusPill status={r.mappingStatus || (r.fieldPath ? "OBSERVED" : "UNKNOWN")} />,
+        key: "fieldMappingOutcome",
+        label: "Outcome",
+        minWidth: 150,
+        render: (r) => (
+          <StatusPill
+            status={r.fieldMappingOutcome || r.mappingStatus || (r.mboTarget ? "MAPPED" : "SOURCE_ONLY")}
+          />
+        ),
       },
       {
-        key: "evidence",
-        label: "Evidence",
-        minWidth: 140,
-        render: (r) => displayText(r.evidence || (r.firstSeenAt ? `first seen ${String(r.firstSeenAt).slice(0, 10)}` : null)),
+        key: "lastSeenAt",
+        label: "Last Seen",
+        minWidth: 120,
+        render: (r) => displayDate(r.lastSeenAt || r.updatedAt),
       },
       {
         key: "firstSeenAt",
@@ -86,7 +120,7 @@ export function SourceSchemaPage() {
     <PageLayout
       eyebrow="Data Integrity"
       title="Source Schema"
-      subtitle="Observed field/path/type layer. This answers: “Is the source data actually present?”"
+      subtitle="Observed API fields from immutable raw payloads. Field outcomes distinguish mapped paths, source-only evidence, and engineering defects."
     >
       <div className="mb-4 flex flex-wrap gap-3">
         <Select
@@ -97,17 +131,15 @@ export function SourceSchemaPage() {
         />
         <Select
           label="Source Object"
-          value={filters.entity_type}
-          onChange={(e) => setFilters((p) => ({ ...p, entity_type: e.target.value }))}
-          options={[
-            { value: "", label: "All objects" },
-            { value: "campaign", label: "Campaign" },
-            { value: "coupon", label: "Coupon" },
-            { value: "conversion", label: "Conversion" },
-            { value: "performance", label: "Performance" },
-            { value: "payment", label: "Payment" },
-            { value: "product", label: "Product" },
-          ]}
+          value={filters.source_object}
+          onChange={(e) => setFilters((p) => ({ ...p, source_object: e.target.value }))}
+          options={SOURCE_OBJECT_OPTIONS}
+        />
+        <Select
+          label="Outcome"
+          value={filters.mapping_status}
+          onChange={(e) => setFilters((p) => ({ ...p, mapping_status: e.target.value }))}
+          options={OUTCOME_OPTIONS}
         />
       </div>
       <DataTable
@@ -123,7 +155,7 @@ export function SourceSchemaPage() {
         total={pagination.total}
         onPageChange={setPage}
         emptyTitle="No observed source fields"
-        emptyDescription="Fields appear after network sync extracts paths into the field registry."
+        emptyDescription="Fields register automatically when network sync stores immutable raw payloads."
       />
     </PageLayout>
   );

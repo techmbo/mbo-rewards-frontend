@@ -157,6 +157,12 @@ export const NAV_SECTIONS = [
         icon: "issues",
       },
       {
+        path: "/ops/sync-runs",
+        label: "Sync Run History",
+        permissions: [PERMISSIONS.OPS_READ],
+        icon: "sync",
+      },
+      {
         path: "/ops/network/raw-payload",
         label: "Full Raw Payload",
         permissions: [PERMISSIONS.OPS_READ],

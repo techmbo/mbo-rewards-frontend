@@ -9,7 +9,7 @@ import { displayMoney, displayText } from "../../utils/display";
 /**
  * One reconciliation page, two modes:
  * A) FT identity drill-down (existing)
- * B) Network Reported → Confirmed → Paid (NetworkReconciliationRow)
+ * B) Network pairwise reconciliation checks (Pointer 18)
  */
 export function ReconciliationPage() {
   const [mode, setMode] = useState("network");
@@ -36,7 +36,7 @@ export function ReconciliationPage() {
           className={`rounded-lg px-3 py-2 text-sm ${mode === "network" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}
           onClick={() => setMode("network")}
         >
-          Network R / C / P
+          Network checks
         </button>
         <button
           type="button"
@@ -48,6 +48,28 @@ export function ReconciliationPage() {
       </div>
       {mode === "network" ? <NetworkReconPanel /> : <FtIdentityPanel />}
     </PageLayout>
+  );
+}
+
+function ReconciliationCheckCell({ checks = [], pair }) {
+  const check = checks.find((c) => c.pair === pair);
+  if (!check) return <span className="text-slate-400">—</span>;
+  if (check.skipped) return <span className="text-slate-400">Skipped</span>;
+
+  const tone = check.ok
+    ? "text-emerald-700"
+    : check.material
+      ? "text-red-700"
+      : "text-amber-700";
+  const label = check.ok ? "Matched" : check.material ? "Mismatch" : "Delta";
+
+  return (
+    <div className="min-w-[8rem]" title={check.mismatchReason || check.label}>
+      <div className={`text-xs font-medium ${tone}`}>{label}</div>
+      {!check.ok && check.mismatchReason ? (
+        <div className="text-[11px] text-slate-500">{check.mismatchReason}</div>
+      ) : null}
+    </div>
   );
 }
 
@@ -94,6 +116,56 @@ function NetworkReconPanel() {
       { key: "brandName", label: "Brand Name", render: (r) => displayText(r.brandName) },
       { key: "campaignName", label: "Campaign Name", render: (r) => displayText(r.campaignName) },
       {
+        key: "checkOrders",
+        label: "Orders",
+        render: (r) => (
+          <ReconciliationCheckCell
+            checks={r.reconciliationChecks}
+            pair="NETWORK_ORDERS_VS_MBO_ORDERS"
+          />
+        ),
+      },
+      {
+        key: "checkCommission",
+        label: "Commission",
+        render: (r) => (
+          <ReconciliationCheckCell
+            checks={r.reconciliationChecks}
+            pair="NETWORK_COMMISSION_VS_MBO_GROSS"
+          />
+        ),
+      },
+      {
+        key: "checkInvoicePayment",
+        label: "Invoice vs Payment",
+        render: (r) => (
+          <ReconciliationCheckCell
+            checks={r.reconciliationChecks}
+            pair="NETWORK_INVOICE_VS_NETWORK_PAYMENT"
+          />
+        ),
+      },
+      {
+        key: "checkPaymentReceipt",
+        label: "Payment vs Receipt",
+        render: (r) => (
+          <ReconciliationCheckCell
+            checks={r.reconciliationChecks}
+            pair="NETWORK_PAYMENT_VS_MBO_RECEIPT"
+          />
+        ),
+      },
+      {
+        key: "checkReceiptPayable",
+        label: "Receipt vs Payable",
+        render: (r) => (
+          <ReconciliationCheckCell
+            checks={r.reconciliationChecks}
+            pair="MBO_RECEIPT_VS_CLIENT_PAYABLE"
+          />
+        ),
+      },
+      {
         key: "reported",
         label: "Network Reported",
         className: "tabular-nums",
@@ -101,7 +173,7 @@ function NetworkReconPanel() {
       },
       {
         key: "confirmed",
-        label: "Confirmed Commission",
+        label: "Confirmed",
         className: "tabular-nums",
         render: (r) => displayMoney(r.confirmed, r.currency),
       },
@@ -112,21 +184,28 @@ function NetworkReconPanel() {
         render: (r) => displayMoney(r.paid, r.currency),
       },
       {
-        key: "reportedVsConfirmed",
-        label: "Reported − Confirmed",
+        key: "mboReceipt",
+        label: "MBO Receipt",
         className: "tabular-nums",
-        render: (r) => displayMoney(r.reportedVsConfirmed, r.currency),
+        render: (r) => displayMoney(r.mboActualReceiptAmount, r.currency),
       },
       {
-        key: "confirmedVsPaid",
-        label: "Confirmed − Paid",
+        key: "clientPayable",
+        label: "Client Payable",
         className: "tabular-nums",
-        render: (r) => displayMoney(r.confirmedVsPaid, r.currency),
+        render: (r) => displayMoney(r.clientPayableAmount, r.currency),
       },
       {
         key: "status",
         label: "Recon Status",
-        render: (r) => displayText(r.status),
+        render: (r) => (
+          <div>
+            <div>{displayText(r.status)}</div>
+            {r.blockClientPayable ? (
+              <div className="text-[11px] font-medium text-red-600">Blocks client payable</div>
+            ) : null}
+          </div>
+        ),
       },
     ],
     [],
@@ -135,7 +214,7 @@ function NetworkReconPanel() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-600">
-        Network Reported → Confirmed → Paid. Rebuild uses the latest order month when billing filters are empty.
+        Five pairwise checks per billing grain. Rebuild runs checks and opens exceptions on material mismatches.
       </p>
       <div className="flex flex-wrap gap-2">
         <Input

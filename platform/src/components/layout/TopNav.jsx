@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ROLE_LABELS } from "../../auth/permissions";
 import { useAuth } from "../../context/AuthContext";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { GlobalSearch } from "./GlobalSearch";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 
@@ -29,19 +30,7 @@ export function TopNav({ onMenuClick }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative hidden max-w-xs flex-1 md:block">
-            <Icon
-              name="search"
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="search"
-              disabled
-              placeholder="Global search (coming soon)"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-500"
-            />
-          </div>
+          <GlobalSearch />
           <button
             type="button"
             className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600"

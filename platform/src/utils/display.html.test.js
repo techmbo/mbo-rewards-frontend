@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { displayCountry, displayHostname, displayText, htmlToPlainText, coerceDetailValue, isCreativeArray } from "./display.js";
+import { displayCountry, displayHostname, displayText, htmlToPlainText, coerceDetailValue, isCreativeArray, humanizeFieldLabel } from "./display.js";
 
 describe("htmlToPlainText", () => {
   it("leaves plain text unchanged", () => {
@@ -80,5 +80,18 @@ describe("isCreativeArray", () => {
       true,
     );
     assert.equal(isCreativeArray(["TH"]), false);
+  });
+});
+
+describe("humanizeFieldLabel", () => {
+  it("splits camelCase into title case", () => {
+    assert.equal(humanizeFieldLabel("advertiserLogoLocation"), "Advertiser Logo Location");
+    assert.equal(humanizeFieldLabel("thirdPartyCommission"), "Third Party Commission");
+    assert.equal(humanizeFieldLabel("acceptingApplications"), "Accepting Applications");
+  });
+
+  it("handles snake_case and empty values", () => {
+    assert.equal(humanizeFieldLabel("last_modified_date"), "Last Modified Date");
+    assert.equal(humanizeFieldLabel(""), "");
   });
 });

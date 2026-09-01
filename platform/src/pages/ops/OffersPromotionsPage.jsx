@@ -15,43 +15,49 @@ function parseDiscountPercent(text) {
 }
 
 /**
- * v13 Offers / Promotions — promotion data remains separate from coupon codes & campaign master.
- * Live rows from supplier coupons (real offer/description evidence).
+ * Pointer 10 — every network coupon/voucher is its own row (never concatenated on campaign cells).
  */
 export function OffersPromotionsPage() {
-  const [filters, setFilters] = useState({ supplier: "" });
-  // client-side network filter — coupon list API is not supplier-scoped
+  const [filters, setFilters] = useState({ networkSource: "" });
+  const queryParams = useMemo(
+    () => (filters.networkSource ? { networkSource: filters.networkSource } : {}),
+    [filters.networkSource],
+  );
   const { rows: rawRows, loading, error, refresh, page, setPage, pagination } = usePagedQuery(
     "/supplier-coupons",
-    {},
+    queryParams,
     { pageSize: 50 },
   );
 
-  const rows = useMemo(() => {
-    const mapped = (rawRows || []).map((r) => {
-      const desc = r.couponDescription || r.discountValue || r.description || null;
-      const pct = parseDiscountPercent(desc) ?? parseDiscountPercent(r.discountValue);
-      const networkSource = r.supplier || r.networkSource || r.supplierCampaign?.supplier;
-      return {
-        networkSource,
-        brandName: r.brandName || r.merchantName || r.supplierCampaign?.merchantNameRaw,
-        campaignName: r.campaignName || r.supplierCampaign?.campaignName,
-        offerId: r.supplierCouponId || r.id,
-        offerTitle: r.couponCode || r.title || r.couponDescription?.slice?.(0, 80) || "Offer",
-        promotionType: r.couponType || r.promotionType || "COUPON",
-        promotionDescription: desc,
-        discountPercent: pct,
-        validFrom: r.couponStartDate || r.validFrom,
-        validUntil: r.couponEndDate || r.validUntil,
-        offerStatus: r.couponStatus || r.status || "UNKNOWN",
-        sourceFieldPath: "supplier_coupon.couponDescription / discountValue",
-        mappingStatus: r.supplierCampaignId || r.supplierCampaign ? "MAPPED" : "UNMAPPED",
-      };
-    });
-    if (!filters.supplier) return mapped;
-    const needle = String(filters.supplier).toLowerCase();
-    return mapped.filter((r) => String(r.networkSource || "").toLowerCase().includes(needle));
-  }, [rawRows, filters.supplier]);
+  const rows = useMemo(
+    () =>
+      (rawRows || []).map((r) => {
+        const desc = r.promotionDescription || r.couponDescription || r.discountValue || null;
+        const pct =
+          parseDiscountPercent(desc) ??
+          parseDiscountPercent(r.discountValue) ??
+          (r.discountType === "PERCENT" ? parseDiscountPercent(r.discountValue) : null);
+        return {
+          networkSource: r.networkSource ?? r.network ?? r.supplier ?? r.supplierCampaign?.supplier,
+          brandName: r.brandName || r.supplierCampaign?.merchantNameRaw,
+          campaignName: r.campaignName || r.supplierCampaign?.campaignName,
+          offerId: r.supplierCouponId || r.id,
+          offerTitle: r.title || r.couponCode || desc?.slice?.(0, 80) || "Offer",
+          couponCode: r.couponCode,
+          promotionType: r.couponType || r.discountType || "COUPON",
+          promotionDescription: desc,
+          discountPercent: pct,
+          validFrom: r.couponStartDate || r.validFrom,
+          validUntil: r.couponEndDate || r.validUntil,
+          offerStatus: r.couponStatus || r.status || "UNKNOWN",
+          sourceObject: r.sourceObject,
+          sourcePath: r.sourcePath || r.sourceFieldPath,
+          mappingStatus: r.mappingStatus || (r.supplierCampaignId ? "MAPPED" : "UNMAPPED"),
+          fieldMappingOutcome: r.fieldMappingOutcome,
+        };
+      }),
+    [rawRows],
+  );
 
   const columns = useMemo(
     () => [
@@ -59,7 +65,8 @@ export function OffersPromotionsPage() {
       { key: "brandName", label: "Brand Name", minWidth: 130, render: (r) => displayText(r.brandName) },
       { key: "campaignName", label: "Campaign Name", minWidth: 140, render: (r) => displayText(r.campaignName) },
       { key: "offerId", label: "Offer ID", minWidth: 120, render: (r) => displayText(r.offerId) },
-      { key: "offerTitle", label: "Offer Title", minWidth: 160, render: (r) => displayText(r.offerTitle) },
+      { key: "couponCode", label: "Coupon Code", minWidth: 120, render: (r) => displayText(r.couponCode) },
+      { key: "offerTitle", label: "Title", minWidth: 160, render: (r) => displayText(r.offerTitle) },
       {
         key: "promotionType",
         label: "Promotion Type",
@@ -88,17 +95,31 @@ export function OffersPromotionsPage() {
         render: (r) => <StatusPill status={r.offerStatus} />,
       },
       {
-        key: "sourceFieldPath",
-        label: "Source Field / Path",
-        minWidth: 180,
+        key: "sourceObject",
+        label: "Source Object",
+        minWidth: 120,
         defaultHidden: true,
-        render: (r) => displayText(r.sourceFieldPath),
+        render: (r) => displayText(r.sourceObject),
+      },
+      {
+        key: "sourcePath",
+        label: "Source Path",
+        minWidth: 140,
+        defaultHidden: true,
+        render: (r) => displayText(r.sourcePath),
       },
       {
         key: "mappingStatus",
         label: "Mapping Status",
         minWidth: 120,
         render: (r) => <StatusPill status={r.mappingStatus} />,
+      },
+      {
+        key: "fieldMappingOutcome",
+        label: "Mapping Outcome",
+        minWidth: 140,
+        defaultHidden: true,
+        render: (r) => (r.fieldMappingOutcome ? <StatusPill status={r.fieldMappingOutcome} /> : "—"),
       },
     ],
     [],
@@ -108,7 +129,7 @@ export function OffersPromotionsPage() {
     <PageLayout
       eyebrow="Network Operations"
       title="Offers / Promotions"
-      subtitle="Promotion data remains a separate record from coupon codes and campaign master data."
+      subtitle="Every network coupon or voucher is stored as its own record — never concatenated on campaign rows."
       actions={
         <Link
           to="/ops/network/coupon-pool"
@@ -121,8 +142,8 @@ export function OffersPromotionsPage() {
       <div className="mb-4 flex flex-wrap gap-3">
         <Select
           label="Network Source"
-          value={filters.supplier}
-          onChange={(e) => setFilters({ supplier: e.target.value })}
+          value={filters.networkSource}
+          onChange={(e) => setFilters({ networkSource: e.target.value })}
           options={NETWORK_SOURCE_OPTIONS}
         />
       </div>
@@ -139,7 +160,7 @@ export function OffersPromotionsPage() {
         total={pagination.total}
         onPageChange={setPage}
         emptyTitle="No offers / promotions"
-        emptyDescription="Rows come from synced supplier coupons with promotion descriptions."
+        emptyDescription="Rows come from synced supplier coupons — one row per network coupon/voucher."
       />
     </PageLayout>
   );

@@ -1,24 +1,29 @@
 import { useState } from "react";
 import { Drawer } from "../ui/Drawer";
 import { StatusPill } from "../ui/StatusPill";
+import { CampaignCapabilityCell } from "./CampaignCapabilityCell";
 import { Button } from "../ui/Button";
 import { UrlCell } from "../ui/TableCells";
 import { BrandIdentity } from "../brand/BrandIdentity";
 import { Icon } from "../ui/Icon";
+import { ScrollableLongText } from "../ui/ScrollableLongText";
+import { KeyValueList, KeyValueRow } from "../ui/KeyValueList";
+import { CampaignCommissionCell } from "./CampaignCommissionCell";
 import {
   countryListTitle,
   displayCountry,
   displayDate,
   displayText,
+  humanizeFieldLabel,
   truncateWords,
   coerceDetailValue,
   isCreativeArray,
   isCountryFieldKey,
 } from "../../utils/display";
 
-function DetailField({ label, children }) {
+function DetailField({ label, children, className = "" }) {
   return (
-    <div>
+    <div className={className}>
       <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
       <dd className="mt-0.5 text-sm text-slate-800">{children ?? "—"}</dd>
     </div>
@@ -47,10 +52,10 @@ function TruncateLink({ href, label }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="break-all text-brand-800 hover:underline"
+      className="inline-block max-w-full break-all text-brand-800 hover:underline"
       title={href}
     >
-      {text.length > 64 ? `${text.slice(0, 64)}…` : text}
+      {text}
     </a>
   );
 }
@@ -150,16 +155,13 @@ function DetailFieldValue({ fieldKey, value, depth = 0 }) {
       return <span className="break-all font-mono text-xs text-slate-600">{JSON.stringify(parsed)}</span>;
     }
     return (
-      <dl className="space-y-1 rounded border border-slate-200 bg-white px-2 py-1.5 text-xs">
+      <dl className="overflow-hidden rounded border border-slate-200 bg-white">
         {Object.entries(parsed)
           .slice(0, 24)
           .map(([key, nested]) => (
-            <div key={key} className="grid grid-cols-[minmax(80px,120px)_1fr] gap-2">
-              <dt className="font-medium text-slate-500">{key}</dt>
-              <dd className="min-w-0 text-slate-800">
-                <DetailFieldValue fieldKey={key} value={nested} depth={depth + 1} />
-              </dd>
-            </div>
+            <KeyValueRow key={key} label={humanizeFieldLabel(key)}>
+              <DetailFieldValue fieldKey={key} value={nested} depth={depth + 1} />
+            </KeyValueRow>
           ))}
       </dl>
     );
@@ -219,17 +221,17 @@ function KvViewer({ data }) {
     return <p className="text-sm text-slate-500">No source data available.</p>;
   }
   const entries = Object.entries(data).slice(0, 80);
+  if (!entries.length) {
+    return <p className="text-sm text-slate-500">No source data available.</p>;
+  }
   return (
-    <dl className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-slate-50/50">
+    <KeyValueList>
       {entries.map(([key, value]) => (
-        <div key={key} className="grid grid-cols-[140px_1fr] gap-3 px-3 py-2 text-sm">
-          <dt className="font-medium text-slate-500">{key}</dt>
-          <dd className="min-w-0 text-slate-800">
-            <DetailFieldValue fieldKey={key} value={value} />
-          </dd>
-        </div>
+        <KeyValueRow key={key} label={humanizeFieldLabel(key)}>
+          <DetailFieldValue fieldKey={key} value={value} />
+        </KeyValueRow>
       ))}
-    </dl>
+    </KeyValueList>
   );
 }
 
@@ -251,6 +253,7 @@ export function ImportedRecordDetailDrawer({
       open={Boolean(detail) || detailLoading || Boolean(detailError)}
       onClose={onClose}
       title={detail?.campaign || detail?.sourceRecordId || "Imported record"}
+      width="max-w-2xl"
     >
       {detailLoading ? <p className="text-sm text-slate-500">Loading…</p> : null}
       {detailError ? <p className="text-sm text-rose-600">{detailError}</p> : null}
@@ -330,11 +333,22 @@ export function ImportedRecordDetailDrawer({
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
               Source / tracking
             </h3>
+            <p className="mb-3 text-xs text-slate-500">
+              {detail.tracking?.redirectChainSummary ||
+                "Client → MBO Tracking Link → MBO Click ID → network attribution param → Supplier Tracking Link → Brand"}
+            </p>
             <dl className="grid grid-cols-2 gap-3">
-              <DetailField label="Network tracking link">
-                <TruncateLink href={detail.tracking?.networkTrackingLink || detail.networkTrackingLink} />
+              <DetailField label="Supplier tracking link (internal)">
+                <TruncateLink
+                  href={
+                    detail.tracking?.supplierTrackingLink ||
+                    detail.tracking?.networkTrackingLink ||
+                    detail.supplierTrackingLink ||
+                    detail.networkTrackingLink
+                  }
+                />
               </DetailField>
-              <DetailField label="MBO tracking link">
+              <DetailField label="MBO tracking link (client-facing)">
                 <UrlCell
                   url={
                     detail.tracking?.mboTrackingLink ||
@@ -344,6 +358,9 @@ export function ImportedRecordDetailDrawer({
                   }
                   missingLabel="Not generated"
                 />
+              </DetailField>
+              <DetailField label="Attribution parameter">
+                {detail.tracking?.attributionParameter || detail.attributionParameter || "—"}
               </DetailField>
               <DetailField label="Tracking link ID">
                 {detail.tracking?.trackingLinkId || detail.trackingLinkId || "—"}
@@ -410,14 +427,20 @@ export function ImportedRecordDetailDrawer({
                     ? String(detail.discountPercent)
                     : "—"}
               </DetailField>
-              <DetailField label="Campaign description">
-                {detail.campaignDetail?.campaignDescription || detail.campaignDescription || "—"}
+              <DetailField label="Campaign description" className="col-span-2">
+                <ScrollableLongText
+                  value={detail.campaignDetail?.campaignDescription || detail.campaignDescription}
+                />
               </DetailField>
-              <DetailField label="Promotion description">
-                {detail.campaignDetail?.promotionDescription || detail.promotionDescription || "—"}
+              <DetailField label="Promotion description" className="col-span-2">
+                <ScrollableLongText
+                  value={detail.campaignDetail?.promotionDescription || detail.promotionDescription}
+                />
               </DetailField>
-              <DetailField label="Terms and conditions">
-                {detail.campaignDetail?.termsAndConditions || detail.termsAndConditions || "—"}
+              <DetailField label="Terms and conditions" className="col-span-2">
+                <ScrollableLongText
+                  value={detail.campaignDetail?.termsAndConditions || detail.termsAndConditions}
+                />
               </DetailField>
             </dl>
           </section>
@@ -426,13 +449,22 @@ export function ImportedRecordDetailDrawer({
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
               Commercial
             </h3>
+            <p className="mb-3 text-[11px] text-slate-500">
+              Campaign commission is a summary only. Supplier commission rules are separate records and are not the same as actual commission earned on orders.
+            </p>
             <dl className="grid grid-cols-2 gap-3">
-              <DetailField label="Commission">
-                {detail.commercial?.commissionDisplay ||
-                  detail.commissionDisplay ||
-                  (detail.commercial?.commission != null
-                    ? String(detail.commercial.commission)
-                    : "—")}
+              <DetailField label="Campaign commission summary" className="col-span-2">
+                <CampaignCommissionCell row={detail} />
+              </DetailField>
+              <DetailField label="Rule fact lines" className="col-span-2">
+                {detail.commercial?.commissionFactsDisplay ||
+                  detail.commissionFactsDisplay ||
+                  "—"}
+              </DetailField>
+              <DetailField label="Avg. commission">
+                {detail.commercial?.commissionAverageDisplay ||
+                detail.commissionAverageDisplay ||
+                "—"}
               </DetailField>
               <DetailField label="Commission type">
                 {detail.commercial?.commissionType || detail.commissionType || "—"}
@@ -453,30 +485,54 @@ export function ImportedRecordDetailDrawer({
 
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Assets
+              Campaign capabilities
             </h3>
+            <p className="mb-3 text-[11px] text-slate-500">
+              Capability signals on the campaign shell. Actual coupon, link, commission, and feed records stay linked separately.
+            </p>
             <dl className="grid grid-cols-2 gap-3">
               <DetailField label="Link">
-                <BoolOrDash value={detail.assetsDetail?.link ?? detail.assets?.link} yes="Available" no="—" />
+                <CampaignCapabilityCell row={detail} columnKey="linkSupport" />
               </DetailField>
               <DetailField label="Coupon">
-                <BoolOrDash value={detail.assetsDetail?.coupon ?? detail.assets?.coupon} yes="Available" no="—" />
+                <CampaignCapabilityCell row={detail} columnKey="couponSupport" />
               </DetailField>
               <DetailField label="Deeplink">
-                <BoolOrDash
-                  value={detail.assetsDetail?.deeplink ?? detail.assets?.deeplink}
-                  yes="Available"
-                  no="—"
-                />
+                <CampaignCapabilityCell row={detail} columnKey="deeplinkSupport" />
               </DetailField>
               <DetailField label="Feed">
-                <BoolOrDash value={detail.assetsDetail?.feed ?? detail.assets?.feed} yes="Available" no="—" />
+                <CampaignCapabilityCell row={detail} columnKey="feedSupport" />
               </DetailField>
-              <DetailField label="Coupon count">
-                {detail.ingestion?.couponCount ?? detail.couponCount ?? "—"}
+              <DetailField label="Commission rules">
+                <CampaignCapabilityCell row={detail} columnKey="commissionRules" />
+              </DetailField>
+              <DetailField label="Coupon records synced">
+                {detail.linkedRecords?.couponVouchers?.syncedCount ??
+                  detail.capabilities?.coupon?.syncedCount ??
+                  detail.couponCount ??
+                  "—"}
               </DetailField>
             </dl>
           </section>
+
+          {detail.linkedRecords ? (
+            <section>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Linked records
+              </h3>
+              <ul className="space-y-1.5 text-xs text-slate-700">
+                {Object.entries(detail.linkedRecords).map(([key, rec]) => (
+                  <li key={key} className="flex items-center justify-between gap-2">
+                    <span>{rec.type}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="tabular-nums text-slate-500">{rec.syncedCount ?? 0} synced</span>
+                      {rec.state ? <StatusPill status={rec.state} /> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -548,13 +604,13 @@ export function ImportedRecordDetailDrawer({
             {Object.keys(detail.detected || {}).length === 0 ? (
               <p className="text-sm text-slate-500">No detected fields on this record.</p>
             ) : (
-              <dl className="grid grid-cols-2 gap-3">
+              <KeyValueList>
                 {Object.entries(detail.detected).map(([key, value]) => (
-                  <DetailField key={key} label={key}>
+                  <KeyValueRow key={key} label={humanizeFieldLabel(key)}>
                     <DetailFieldValue fieldKey={key} value={value} />
-                  </DetailField>
+                  </KeyValueRow>
                 ))}
-              </dl>
+              </KeyValueList>
             )}
           </section>
 

@@ -299,7 +299,11 @@ export function CampaignDetailsPanel({
                       ) : (
                         <span
                           className={`${missing ? "font-medium text-rose-600" : "text-slate-800"} ${
-                            field.multiline ? "block max-w-xl whitespace-pre-wrap" : ""
+                            field.multiline && !missing
+                              ? "block max-h-40 max-w-xl overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-relaxed"
+                              : field.multiline
+                                ? "block max-w-xl whitespace-pre-wrap"
+                                : ""
                           }`}
                         >
                           {field.key === "brandLogoUrl"

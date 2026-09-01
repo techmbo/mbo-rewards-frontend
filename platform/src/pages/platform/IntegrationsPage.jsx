@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { deleteApi, fetchApi, postApi } from "../../api";
 import { PageLayout } from "../../components/layout/PageLayout";
+import { StatusPill } from "../../components/ui/StatusPill";
 
 const OPTIMISE_AGENCY_IDS = {
   optimise_sea: "118",
@@ -126,6 +127,7 @@ export function IntegrationsPage() {
   const [optimiseAgencyIds, setOptimiseAgencyIds] = useState({});
   const [optimiseContactIds, setOptimiseContactIds] = useState({});
   const [accountLabels, setAccountLabels] = useState({});
+  const [environments, setEnvironments] = useState({});
   const [connections, setConnections] = useState({});
   const [syncMessage, setSyncMessage] = useState("");
   const [syncError, setSyncError] = useState("");
@@ -186,6 +188,7 @@ export function IntegrationsPage() {
     const agencyId = isOptimise ? resolveOptimiseAgencyId(platformKey, optimiseAgencyIds) : "";
     const contactId = isOptimise ? optimiseContactIds[platformKey]?.trim() : "";
     const accountLabel = accountLabels[platformKey]?.trim() || "default";
+    const environment = environments[platformKey] || "PRODUCTION";
 
     if (isOptimise && !contactId) {
       setSyncError("Please enter your Optimise Contact ID.");
@@ -204,6 +207,7 @@ export function IntegrationsPage() {
     try {
       await postApi(`/marketplace/accounts/${platformKey}/connect`, {
         accountLabel,
+        environment,
         ...(isPartnerize
           ? { applicationKey, userApiKey, publisherId: publisherId || undefined }
           : { apiKey }),
@@ -216,6 +220,7 @@ export function IntegrationsPage() {
       await loadConnections();
       setCredentials((prev) => ({ ...prev, [platformKey]: "" }));
       setAccountLabels((prev) => ({ ...prev, [platformKey]: "" }));
+      setEnvironments((prev) => ({ ...prev, [platformKey]: "PRODUCTION" }));
       if (isPartnerize) {
         setPartnerizeApplicationKeys((prev) => ({ ...prev, [platformKey]: "" }));
         setPartnerizeUserApiKeys((prev) => ({ ...prev, [platformKey]: "" }));
@@ -403,6 +408,22 @@ export function IntegrationsPage() {
                       }
                     />
                   </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium text-slate-700">Environment</span>
+                    <select
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                      value={environments[platform.key] || "PRODUCTION"}
+                      onChange={(e) =>
+                        setEnvironments((prev) => ({
+                          ...prev,
+                          [platform.key]: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="PRODUCTION">Production</option>
+                      <option value="SANDBOX">Sandbox</option>
+                    </select>
+                  </label>
                   {isPartnerize ? (
                     <>
                       <label className="block">
@@ -532,10 +553,24 @@ export function IntegrationsPage() {
                             key={`${platform.key}-${status.accountLabel}`}
                             className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
                           >
-                            <p className="text-xs text-slate-600">
-                              [{status.accountLabel}] key: {status.maskedKey || "oauth"} on{" "}
-                              {new Date(status.connectedAt).toLocaleString()}
-                            </p>
+                            <div className="min-w-0 space-y-1">
+                              <p className="text-xs font-medium text-slate-800">
+                                [{status.accountLabel}] {status.maskedApiKey || status.maskedKey || "oauth"}
+                              </p>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <StatusPill status={status.environment} />
+                                <StatusPill status={status.credentialHealth} />
+                              </div>
+                              <p className="text-[11px] text-slate-500">
+                                Catalog {status.syncEnabled === false ? "off" : "on"} · Finance{" "}
+                                {status.financeSyncEnabled === false ? "off" : "on"}
+                                {status.lastSuccessfulSync
+                                  ? ` · Last success ${new Date(status.lastSuccessfulSync).toLocaleString()}`
+                                  : status.connectedAt
+                                    ? ` · Connected ${new Date(status.connectedAt).toLocaleString()}`
+                                    : ""}
+                              </p>
+                            </div>
                             <div className="flex gap-2">
                               <button
                                 className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"

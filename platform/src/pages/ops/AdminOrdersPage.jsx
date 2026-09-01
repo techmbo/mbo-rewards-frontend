@@ -77,7 +77,12 @@ export function AdminOrdersPage() {
         render: (r) => (
           <div className="font-mono text-xs">
             <div title={r.supplierOrderId || ""}>{displayText(r.supplierOrderId)}</div>
-            <div className="text-slate-500" title={r.orderId || ""}>
+            {r.networkConversionId ? (
+              <div className="text-slate-500" title={r.networkConversionId}>
+                conv: {displayText(r.networkConversionId)}
+              </div>
+            ) : null}
+            <div className="text-slate-400" title={r.orderId || ""}>
               {r.orderId ? `${String(r.orderId).slice(0, 8)}…` : "—"}
             </div>
           </div>
@@ -88,6 +93,23 @@ export function AdminOrdersPage() {
         label: "Client Name",
         minWidth: 120,
         render: (r) => displayText(r.clientName),
+      },
+      {
+        key: "attributionStatus",
+        label: "Attribution",
+        minWidth: 140,
+        title: "Conversion attribution status and evidence (Pointer 15)",
+        render: (r) => (
+          <div>
+            <StatusPill status={r.attributionStatus || "UNKNOWN"} />
+            {r.attributionEvidenceLabel ? (
+              <div className="mt-0.5 text-[11px] text-slate-500">{r.attributionEvidenceLabel}</div>
+            ) : null}
+            {r.attributionReviewReasonLabel ? (
+              <div className="text-[10px] text-amber-700">{r.attributionReviewReasonLabel}</div>
+            ) : null}
+          </div>
+        ),
       },
       {
         key: "merchantName",
@@ -140,7 +162,16 @@ export function AdminOrdersPage() {
         key: "orderStatus",
         label: "Order Status",
         minWidth: 110,
-        render: (r) => <StatusPill status={r.orderStatus || r.mboStatus} />,
+        render: (r) => (
+          <div>
+            <StatusPill status={r.mboOrderStatus || r.orderStatus || r.mboStatus} />
+            {r.networkRawStatus && r.networkRawStatus !== r.mboOrderStatus ? (
+              <div className="mt-0.5 font-mono text-[10px] text-slate-500" title="Network raw status">
+                raw: {displayText(r.networkRawStatus)}
+              </div>
+            ) : null}
+          </div>
+        ),
       },
       {
         key: "validationStatus",

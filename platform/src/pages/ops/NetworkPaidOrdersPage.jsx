@@ -29,9 +29,9 @@ function paymentLedgerStatus(row) {
 }
 
 function mboReceivedAmount(row) {
-  const p = String(row.supplierPaymentStatus || "").toUpperCase();
-  if (p === "PAYMENT_RECEIVED") return row.financial?.supplierReceivable ?? row.mboReceived;
-  return row.mboReceived ?? 0;
+  if (row.mboReceived != null) return row.mboReceived;
+  if (row.mboReceivedAmount != null) return row.mboReceivedAmount;
+  return 0;
 }
 
 function TrackingExpand({ row }) {
@@ -210,11 +210,11 @@ export function NetworkPaidOrdersPage() {
       },
       {
         key: "bankReceived",
-        label: "Bank Received",
+        label: "MBO Bank Receipt",
         minWidth: 120,
         render: (r) =>
-          String(r.supplierPaymentStatus || "").toUpperCase() === "PAYMENT_RECEIVED"
-            ? formatDate(r.bankReceivedAt || r.confirmedDate)
+          r.mboReceivedDateTime || r.bankReceivedAt
+            ? formatDate(r.bankReceivedAt || r.mboReceivedDateTime)
             : "—",
       },
       {
@@ -222,10 +222,7 @@ export function NetworkPaidOrdersPage() {
         label: "Reconciliation",
         minWidth: 120,
         render: (r) => {
-          const p = String(r.supplierPaymentStatus || "").toUpperCase();
-          const label =
-            r.reconciliationStatus ||
-            (p === "PAYMENT_RECEIVED" ? "Matched" : p ? "Pending" : null);
+          const label = r.reconciliationStatus || (r.clientPayableEligible ? "Eligible" : null);
           return label ? <StatusPill status={label} /> : "—";
         },
       },

@@ -45,6 +45,7 @@ export function DataTable({
   fixedLayout = false,
   minWidth,
   showColumnPicker = true,
+  alignTop = false,
 }) {
   const [search, setSearch] = useState("");
   const columnKey = columns.map((c) => `${c.key}:${c.defaultHidden ? 0 : 1}`).join("|");
@@ -253,7 +254,9 @@ export function DataTable({
                     <td
                       key={col.key}
                       style={columnStyle(col)}
-                      className={`${pad} overflow-hidden align-middle text-slate-700 ${
+                      className={`${pad} overflow-hidden ${
+                        alignTop ? "align-top" : "align-middle"
+                      } text-slate-700 ${
                         col.key === "actions" || col.key === "action" ? "text-right" : ""
                       } ${col.className || ""}`}
                     >

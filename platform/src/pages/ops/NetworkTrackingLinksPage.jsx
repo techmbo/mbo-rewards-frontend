@@ -48,8 +48,7 @@ function networkDisplay(row) {
 }
 
 /**
- * Network Operations — Tracking Links (v13).
- * Supplier tracking links and MBO tracking links are separate fields.
+ * Pointer 11 — supplier tracking links (internal) and MBO tracking links (client-facing) are separate.
  */
 export function NetworkTrackingLinksPage() {
   const [filters, setFilters] = useState(NETWORK_CAMPAIGN_EMPTY_FILTERS);
@@ -70,13 +69,25 @@ export function NetworkTrackingLinksPage() {
         minWidth:
           col.key === "supplierTrackingLink" || col.key === "mboTrackingLink"
             ? 200
-            : col.key === "campaignName"
-              ? 160
-              : 120,
+            : col.key === "redirectChainSummary"
+              ? 260
+              : col.key === "campaignName"
+                ? 160
+                : 120,
         render: (row) => {
           if (col.key === "networkSource") return networkDisplay(row) || "—";
           if (col.key === "supplierTrackingLink" || col.key === "mboTrackingLink") {
             return <UrlCell value={row[col.key]} />;
+          }
+          if (col.key === "redirectChainSummary") {
+            return (
+              <span
+                className="block max-w-[280px] truncate text-xs text-slate-600"
+                title={row.redirectChainSummary || row.note}
+              >
+                {row.redirectChainSummary || "—"}
+              </span>
+            );
           }
           if (col.key === "linkStatus" || col.key === "mappingStatus") {
             return row[col.key] ? <StatusPill status={row[col.key]} /> : "—";
@@ -95,13 +106,18 @@ export function NetworkTrackingLinksPage() {
     <PageLayout
       eyebrow="Network Operations"
       title="Tracking Links"
-      subtitle="Supplier tracking links and MBO tracking links are stored separately. Client-facing flows must use the MBO tracking link."
+      subtitle="Supplier tracking links are internal network URLs. MBO tracking links are client-facing redirects created after assignment."
       actions={
         <Button variant="secondary" onClick={() => reload()}>
           Refresh
         </Button>
       }
     >
+      <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+        <span className="font-medium text-slate-800">Runtime redirect chain: </span>
+        Client → MBO Tracking Link → MBO Click ID → network SubID/ClickRef/UID/u1 → Supplier Tracking Link → Brand
+      </div>
+
       <div className="mb-4">
         <NetworkCampaignFilterBar
           values={filters}

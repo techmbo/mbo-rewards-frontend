@@ -308,6 +308,7 @@ export function SuppliersPage() {
     { id: "overview", label: "Overview" },
     { id: "coverage", label: "Data coverage" },
     { id: "sync", label: "Sync health" },
+    { id: "objects", label: "Source objects" },
     { id: "pipeline", label: "Pipeline" },
     { id: "mapping", label: "Mapping" },
   ];
@@ -604,17 +605,81 @@ export function SuppliersPage() {
                           <div className="font-medium text-slate-800">
                             {a.platform} · {a.accountLabel}
                           </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <StatusPill status={a.environment} />
+                            <StatusPill status={a.credentialHealth} />
+                          </div>
+                          <div>
+                            Catalog sync: {a.syncEnabled === false ? "Off" : "On"}
+                            {" · "}
+                            Finance sync: {a.financeSyncEnabled === false ? "Off" : "On"}
+                          </div>
                           <div>
                             Credentials: {a.credentialsConfigured ? "Configured" : "Missing"}
                             {a.maskedApiKey ? ` (${a.maskedApiKey})` : ""}
                           </div>
-                          <div>Last sync: {relativeTime(a.lastSuccessfulSync)}</div>
+                          <div>Last success: {relativeTime(a.lastSuccessfulSync)}</div>
+                          {a.lastSyncError ? (
+                            <div className="mt-1 text-red-600">{a.lastSyncError}</div>
+                          ) : null}
                         </div>
                       ))}
                     </div>
                   </div>
                 ) : null}
               </dl>
+            ) : null}
+
+            {tab === "objects" ? (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500">
+                  Each source object is its own sync unit. Last run is for that object only — a conversions failure does not fail campaigns.
+                </p>
+                {(detail.sourceObjects || []).length === 0 ? (
+                  <p className="text-sm text-slate-500">No source objects catalogued for this network.</p>
+                ) : (
+                  (detail.sourceObjects || []).map((obj) => (
+                    <div key={`${obj.sourceObject}-${obj.endpoint}`} className="rounded-lg border border-slate-200 px-3 py-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-slate-800">{obj.label}</div>
+                          <div className="text-[11px] text-slate-500">{obj.endpoint}</div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <StatusPill
+                            status={obj.live ? "LIVE" : "DECLARED"}
+                            label={obj.live ? "Live fetch" : "Declared"}
+                          />
+                          {obj.lastRun ? (
+                            <StatusPill status={obj.lastRun.status} />
+                          ) : (
+                            <span className="text-[11px] text-slate-400">No run yet</span>
+                          )}
+                        </div>
+                      </div>
+                      {obj.notes ? <p className="mt-1 text-xs text-slate-500">{obj.notes}</p> : null}
+                      {obj.lastRun ? (
+                        <div className="mt-1 grid gap-1 text-xs text-slate-600 sm:grid-cols-3">
+                          <span>Run: {obj.lastRun.syncRunId ? `${obj.lastRun.syncRunId.slice(0, 8)}…` : "—"}</span>
+                          <span>
+                            Records: {obj.lastRun.recordCount == null ? "—" : obj.lastRun.recordCount}
+                          </span>
+                          <span>
+                            {obj.lastRun.finishedAt
+                              ? relativeTime(obj.lastRun.finishedAt)
+                              : obj.lastRun.startedAt
+                                ? relativeTime(obj.lastRun.startedAt)
+                                : "—"}
+                          </span>
+                        </div>
+                      ) : null}
+                      {obj.lastRun?.errorMessage ? (
+                        <div className="mt-1 text-xs text-red-600">{obj.lastRun.errorMessage}</div>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </div>
             ) : null}
 
             {tab === "pipeline" ? (

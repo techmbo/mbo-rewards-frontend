@@ -122,12 +122,17 @@ function DetailCell({ label, value }) {
 function ViewEverything({ row, canFinance }) {
   const money = (value) => displayMoney(value, row.currency);
   const campaignType = row.campaignType || campaignTypeLabel(row.campaignChannelType);
+  const sourceOnlyEntries =
+    row.sourceOnlyFields && typeof row.sourceOnlyFields === "object"
+      ? Object.entries(row.sourceOnlyFields)
+      : [];
   return (
     <details className="min-w-[16rem] rounded-lg border border-slate-200 bg-slate-50/80">
       <summary className="cursor-pointer whitespace-nowrap px-2.5 py-1.5 text-xs font-semibold text-slate-700">
         View Everything
       </summary>
       <div className="grid min-w-[44rem] grid-cols-3 gap-2 p-2.5 pt-0">
+        <DetailCell label="MBO Object" value={displayText(row.mboCanonicalObject || "PerformanceRecord")} />
         <DetailCell label="Report ID" value={displayText(row.reportId)} />
         <DetailCell label="Campaign Name" value={displayText(row.campaignName)} />
         <DetailCell label="Network Campaign ID" value={displayText(row.supplierCampaignId)} />
@@ -190,6 +195,22 @@ function ViewEverything({ row, canFinance }) {
         <DetailCell label="Last Synced" value={displayDateTime(row.lastSyncedAt)} />
         <DetailCell label="Last Updated" value={displayDateTime(row.lastUpdatedAt)} />
         <DetailCell label="Reconciliation" value={displayText(row.reconciliation || row.reconciliationStatus)} />
+        {sourceOnlyEntries.length ? (
+          <div className="col-span-3 rounded-lg border border-dashed border-slate-200 bg-white px-2.5 py-2">
+            <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
+              Source-only fields (not promoted to MBO columns)
+            </span>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {sourceOnlyEntries.map(([key, value]) => (
+                <DetailCell
+                  key={key}
+                  label={key}
+                  value={displayText(typeof value === "object" ? JSON.stringify(value) : value)}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </details>
   );
@@ -232,7 +253,7 @@ export function AdminPerformancePage() {
     { pageSize: 25 },
   );
 
-  // Bust session cache once on mount so enriched couponCode (e.g. Optimise mp393) is not stuck.
+  // Bust session cache once on mount so performance list reflects latest facts.
   useEffect(() => {
     invalidateApiCache("/ops/admin/performance");
     refresh().catch(() => {});
@@ -411,7 +432,7 @@ export function AdminPerformancePage() {
     <PageLayout
       eyebrow="Network Operations"
       title="Raw Network Performance"
-      subtitle="Exact top-level fields from 04A_Performance_Report_Tab. Network Source is retained as internal source context."
+      subtitle="PerformanceRecord grain (04A). Separate from OrderConversion — missing network metrics stay null, never fabricated."
       actions={
         <>
           <Button variant="secondary" onClick={exportFullData}>
@@ -477,7 +498,7 @@ export function AdminPerformancePage() {
 
       {unavailable.length ? (
         <p className="text-[11px] text-slate-500">
-          Intentionally unavailable when empty: {unavailable.slice(0, 8).join(", ")}
+          Often null when the network omits them (never fabricated): {unavailable.slice(0, 8).join(", ")}
         </p>
       ) : null}
 

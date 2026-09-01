@@ -63,9 +63,9 @@ function fmtMoney(n) {
   return `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function DetailField({ label, children }) {
+function DetailField({ label, children, className = "" }) {
   return (
-    <div className="rounded-[10px] border border-slate-200 bg-slate-50 p-4">
+    <div className={`rounded-[10px] border border-slate-200 bg-slate-50 p-4 ${className}`}>
       <span className="block text-sm font-semibold uppercase tracking-wide text-slate-400">{label}</span>
       <div className="mt-1.5 text-sm leading-relaxed text-slate-800">{children}</div>
     </div>
@@ -679,8 +679,10 @@ export function PortalCampaignsPage() {
                   ? new Date(detail.campaignValidity.endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                   : "—"}
               </DetailField>
-              <DetailField label="Terms & conditions">
-                {detail.termsAndConditions || "Not available"}
+              <DetailField label="Terms & conditions" className="sm:col-span-2">
+                <div className="max-h-40 overflow-y-auto overscroll-contain whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  {detail.termsAndConditions || "Not available"}
+                </div>
               </DetailField>
               <DetailField label="Website">
                 {brandWebsiteUrl(detail) || "Not available"}

@@ -76,6 +76,7 @@ import { AllNetworkDataPage } from "../pages/ops/AllNetworkDataPage.jsx";
 import { SupplierCommissionRulesPage } from "../pages/ops/SupplierCommissionRulesPage.jsx";
 import { NetworkTrackingLinksPage } from "../pages/ops/NetworkTrackingLinksPage.jsx";
 import { FullRawPayloadPage } from "../pages/ops/FullRawPayloadPage.jsx";
+import { SyncRunHistoryPage } from "../pages/ops/SyncRunHistoryPage.jsx";
 
 function Protected({ permissions = [], element }) {
   return <ProtectedRoute permissions={permissions}>{element}</ProtectedRoute>;
@@ -212,6 +213,7 @@ export function AppRoutes() {
         <Route path="tracking-links" element={<Protected permissions={[PERMISSIONS.TRACKING_READ]} element={<TrackingLinksPage />} />} />
         <Route path="ops/exceptions" element={<Protected permissions={[PERMISSIONS.EXCEPTIONS_READ]} element={<ExceptionQueuePage />} />} />
         <Route path="ops/mapping-review" element={<Protected permissions={[PERMISSIONS.EXCEPTIONS_READ]} element={<MappingReviewPage />} />} />
+        <Route path="ops/sync-runs" element={<Protected permissions={[PERMISSIONS.OPS_READ]} element={<SyncRunHistoryPage />} />} />
         <Route path="ops/finance" element={<Protected permissions={[PERMISSIONS.FINANCE_OPS_READ]} element={<FinanceOpsPage />} />} />
         <Route path="ops/reconciliation" element={<Protected permissions={[PERMISSIONS.FINANCE_OPS_READ]} element={<ReconciliationPage />} />} />
         <Route path="ops/products" element={<Protected permissions={[PERMISSIONS.PRODUCTS_READ]} element={<ProductAdminPage />} />} />
