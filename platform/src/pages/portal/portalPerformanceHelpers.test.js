@@ -11,6 +11,7 @@ import {
   isPerformanceEmpty,
   kpiValue,
   csvRowsFromItems,
+  PERFORMANCE_CSV_HEADERS,
 } from "./portalPerformanceHelpers.js";
 
 describe("portalPerformanceHelpers", () => {
@@ -44,18 +45,39 @@ describe("portalPerformanceHelpers", () => {
   });
 
   it("CSV mapping uses client commission fields", () => {
+    const col = (name) => PERFORMANCE_CSV_HEADERS.indexOf(name);
+    const item = {
+      date: "2026-01-01",
+      brandName: "Brand",
+      campaignName: "Camp",
+      clientCommission: 12,
+      pendingClientCommission: 4,
+      linkClicks: 3,
+      // Supplier / network / campaign-average figures must never leak into client columns.
+      supplierCommission: 99,
+      networkCommission: 98,
+      grossCommission: 97,
+      avgCommission: 96,
+      campaignAverageCommission: 95,
+    };
+    const row = csvRowsFromItems([item])[0];
+    assert.equal(row.length, PERFORMANCE_CSV_HEADERS.length);
+    assert.equal(row[col("Date")], "2026-01-01");
+    assert.equal(row[col("Link Clicks")], 3);
+    assert.equal(row[col("Client Commission")], 12);
+    assert.equal(row[col("Pending Client Commission")], 4);
+    for (const forbidden of [99, 98, 97, 96, 95]) {
+      assert.equal(row.includes(forbidden), false, `supplier/network/average value ${forbidden} leaked into the CSV row`);
+    }
+  });
+
+  it("CSV mapping never substitutes supplier or network commission when client commission is absent", () => {
+    const col = (name) => PERFORMANCE_CSV_HEADERS.indexOf(name);
     const row = csvRowsFromItems([
-      {
-        date: "2026-01-01",
-        brandName: "Brand",
-        campaignName: "Camp",
-        clientCommission: 12,
-        linkClicks: 3,
-      },
+      { date: "2026-01-01", supplierCommission: 99, networkCommission: 98, avgCommission: 96 },
     ])[0];
-    assert.equal(row[0], "2026-01-01");
-    assert.equal(row[6], 3);
-    assert.equal(row[13], 12);
+    assert.equal(row[col("Client Commission")], "");
+    assert.equal(row[col("Pending Client Commission")], "");
   });
 
   it("classifies auth errors", () => {

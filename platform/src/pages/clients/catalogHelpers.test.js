@@ -174,10 +174,21 @@ describe("filters sent to backend", () => {
     assert.equal(q.assignmentStatus, "AVAILABLE");
   });
 
-  it("available mode defaults eligibility to ELIGIBLE", () => {
+  it("available mode filters to unassigned campaigns without forcing eligibility", () => {
+    // The backend's eligibility=ELIGIBLE filter drops NEEDS_REVIEW relationships, which would
+    // hide whole networks (e.g. Boostiny) from the available tab. Only assignmentStatus is
+    // forced; eligibility stays a user-selected filter.
     const q = buildAllocationQuery({ page: 1, mode: "available", filters: {} });
     assert.equal(q.assignmentStatus, "AVAILABLE");
+    assert.equal(q.eligibility, undefined);
+  });
+
+  it("available mode passes an explicit eligibility filter through", () => {
+    const q = buildAllocationQuery({ page: 1, mode: "available", filters: { eligibility: "ELIGIBLE" } });
+    assert.equal(q.assignmentStatus, "AVAILABLE");
     assert.equal(q.eligibility, "ELIGIBLE");
+    const review = buildAllocationQuery({ page: 1, mode: "available", filters: { eligibility: "NEEDS_REVIEW" } });
+    assert.equal(review.eligibility, "NEEDS_REVIEW");
   });
 });
 
