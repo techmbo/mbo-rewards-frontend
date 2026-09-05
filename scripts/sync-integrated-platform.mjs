@@ -11,6 +11,7 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  readFileSync,
   rmSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
@@ -44,10 +45,23 @@ if (!existsSync(join(platformFrontend, "node_modules"))) {
   run("npm", ["install"], platformFrontend);
 }
 
-// Local sync defaults to local API. For production deploys set:
+// The synced bundle is the PRODUCTION bundle served at /mbointegratedPlatform, so the API base
+// comes from the platform's tracked production env (platform/.env.production) unless the caller
+// explicitly overrides it:
 //   VITE_API_BASE_URL=https://your-api.example.com/api npm run sync:platform
-const apiBase =
-  process.env.VITE_API_BASE_URL || "http://127.0.0.1:4001/api";
+// Never default to a loopback API here — that bakes http://127.0.0.1 into the deployed SPA.
+const explicitApiBase = String(process.env.VITE_API_BASE_URL || "").trim();
+const productionEnvFile = join(platformFrontend, ".env.production");
+const productionApiBase = existsSync(productionEnvFile)
+  ? (readFileSync(productionEnvFile, "utf8").match(/^\s*VITE_API_BASE_URL\s*=\s*"?([^"\r\n]+)"?/m)?.[1] ?? "").trim()
+  : "";
+const apiBase = explicitApiBase || productionApiBase;
+if (!apiBase) {
+  console.error(
+    "VITE_API_BASE_URL is not set and platform/.env.production does not define it; refusing to build the integrated platform without a backend URL.",
+  );
+  process.exit(1);
+}
 
 console.log(`→ Building Integrated Platform frontend (API: ${apiBase})…`);
 run("npm", ["run", "build"], platformFrontend, {
@@ -57,6 +71,12 @@ run("npm", ["run", "build"], platformFrontend, {
 
 if (!existsSync(distDir)) {
   console.error(`Build output missing: ${distDir}`);
+  process.exit(1);
+}
+
+// Guard: a loopback backend must only ever be baked on explicit request (local previews).
+if (!explicitApiBase && /^https?:\/\/(127\.0\.0\.1|localhost)\b/i.test(apiBase)) {
+  console.error(`Refusing to sync an integrated platform bundle pointed at a loopback API: ${apiBase}`);
   process.exit(1);
 }
 
