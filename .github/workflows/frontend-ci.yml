@@ -1,0 +1,58 @@
+name: Frontend CI
+
+# Secret-free validation of the real build path: clean installs, platform tests, the
+# integrated platform sync, the Next.js build and the OpenNext Cloudflare worker build.
+# Deployment (wrangler deploy / opennextjs-cloudflare deploy) is intentionally NOT part of
+# this workflow; it needs Cloudflare credentials and is run separately.
+
+on:
+  push:
+    branches:
+      - frontend1
+      - fix/mbo-rewards-frontend-final-corrections
+  pull_request:
+    branches:
+      - frontend1
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            platform/package-lock.json
+      - name: Install root dependencies (normal npm ci, no peer overrides)
+        run: npm ci
+      - name: Install platform dependencies
+        run: npm ci
+        working-directory: platform
+      - name: Platform unit tests
+        run: node --test $(find src -name "*.test.js" | sort)
+        working-directory: platform
+      - name: Platform build
+        run: npm run build
+        working-directory: platform
+      - name: Sync integrated platform into public/ (must bake the production API base)
+        run: |
+          npm run sync:platform
+          grep -q "https://api.mborewards.com/api" public/mbointegratedPlatform/assets/index-*.js
+          ! grep -q "127.0.0.1:4001" public/mbointegratedPlatform/assets/index-*.js
+      - name: Committed bundle matches the synced build
+        run: git diff --exit-code -- public/mbointegratedPlatform
+      - name: Next.js build
+        run: npm run build
+      - name: OpenNext Cloudflare worker build (no deploy)
+        run: npx opennextjs-cloudflare build
+      - name: Worker output contains the integrated platform and its SPA fallback rules
+        run: |
+          test -f .open-next/worker.js
+          test -f .open-next/assets/mbointegratedPlatform/index.html
+          diff public/_redirects .open-next/assets/_redirects
