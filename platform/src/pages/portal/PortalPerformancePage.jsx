@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiError, CLIENT_API, fetchApi } from "../../api";
+import { ApiError, PORTAL_API, fetchApi } from "../../api";
 import { unwrap } from "./portalUtils";
 import {
   classifyPerformanceLoadError,
@@ -104,13 +104,13 @@ export function PortalPerformancePage() {
         if (filters.to) params.to = filters.to;
 
         const [perfRes, ordersRes] = await Promise.all([
-          fetchApi(CLIENT_API.performance || "/portal/v1/performance", params),
-          fetchApi(CLIENT_API.orders || "/portal/v1/orders", params).catch(() => null),
+          fetchApi(PORTAL_API.performance, params),
+          fetchApi(PORTAL_API.orders, params).catch(() => null),
         ]);
         setPayload(unwrap(perfRes));
         setOrdersPayload(ordersRes ? unwrap(ordersRes) : null);
       } catch (err) {
-        setLoadError(classifyPerformanceLoadError(err, ApiError, "/portal/v1/performance"));
+        setLoadError(classifyPerformanceLoadError(err, ApiError, PORTAL_API.performance));
       } finally {
         setLoading(false);
       }

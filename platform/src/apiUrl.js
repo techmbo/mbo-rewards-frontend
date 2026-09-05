@@ -95,3 +95,20 @@ export const CLIENT_API = {
   withdrawalRequests: "/v1/client/withdrawal-requests",
   products: "/v1/client/products",
 };
+
+/**
+ * Client PORTAL delivery channel. The backend enforces API_ONLY / PORTAL_ONLY /
+ * API_AND_PORTAL per channel, so portal screens must call /portal/v1/* (never the external
+ * Client API under /v1/client/*). Only routes registered by the backend router are listed.
+ * Note: payment-status (client-safe payment/order status) and payments (withdrawal / payment
+ * dashboard) are different screens and different backend contracts.
+ */
+export const PORTAL_API = {
+  campaigns: "/portal/v1/campaigns",
+  campaign: (id) => `/portal/v1/campaigns/${encodeURIComponent(id)}`,
+  performance: "/portal/v1/performance",
+  orders: "/portal/v1/orders",
+  products: "/portal/v1/products",
+  paymentStatus: "/portal/v1/payment-status",
+  payments: "/portal/v1/payments",
+};

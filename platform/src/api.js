@@ -3,6 +3,7 @@ import {
   joinApiPath,
   buildUrl,
   CLIENT_API,
+  PORTAL_API,
 } from "./apiUrl.js";
 import {
   buildCacheKey,
@@ -17,7 +18,7 @@ import {
 
 export { invalidateApiCache };
 
-export { resolveApiBaseUrl, joinApiPath, buildUrl, CLIENT_API };
+export { resolveApiBaseUrl, joinApiPath, buildUrl, CLIENT_API, PORTAL_API };
 
 export class ApiError extends Error {
   constructor(message, { status = 0, path = null, correlationId = null, details = null } = {}) {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiError, CLIENT_API, fetchApi } from "../../api";
+import { ApiError, PORTAL_API, fetchApi } from "../../api";
 import { Modal } from "../../components/ui/Modal";
 import { BrandIdentity } from "../../components/brand/BrandIdentity";
 import { unwrap } from "./portalUtils";
@@ -145,8 +145,8 @@ export function PortalCampaignsPage() {
     try {
       const params = { pageSize: 200 };
       const [response, perfRes] = await Promise.all([
-        fetchApi(CLIENT_API.campaigns, params),
-        fetchApi(CLIENT_API.performance || "/portal/v1/performance", { pageSize: 500 }).catch(() => null),
+        fetchApi(PORTAL_API.campaigns, params),
+        fetchApi(PORTAL_API.performance, { pageSize: 500 }).catch(() => null),
       ]);
       const data = unwrap(response);
       setPayload(data);
@@ -177,7 +177,7 @@ export function PortalCampaignsPage() {
       }
       setPerfByCampaign(map);
     } catch (err) {
-      setLoadError(classifyCampaignLoadError(err, ApiError, CLIENT_API.campaigns));
+      setLoadError(classifyCampaignLoadError(err, ApiError, PORTAL_API.campaigns));
       setPayload(null);
     } finally {
       setLoading(false);
@@ -312,7 +312,7 @@ export function PortalCampaignsPage() {
     try {
       const id = c.assignmentId || c.campaignId || c.id;
       if (!id) return;
-      const response = await fetchApi(CLIENT_API.campaign(id));
+      const response = await fetchApi(PORTAL_API.campaign(id));
       const data = unwrap(response);
       const fresh = data?.campaign || data;
       if (fresh && typeof fresh === "object") setDetail(fresh);

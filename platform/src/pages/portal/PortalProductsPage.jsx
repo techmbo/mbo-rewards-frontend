@@ -4,7 +4,7 @@ import { DataTable } from "../../components/ui/DataTable";
 import { Input } from "../../components/ui/FormControls";
 import { Button } from "../../components/ui/Button";
 import { ApiError, fetchApi } from "../../api";
-import { CLIENT_API } from "../../apiUrl";
+import { PORTAL_API } from "../../apiUrl";
 import { useToast } from "../../context/ToastContext";
 import { copyText, unwrap } from "./portalUtils";
 import {
@@ -58,11 +58,11 @@ export function PortalProductsPage() {
     try {
       const params = { page, pageSize: 25 };
       if (search.trim()) params.search = search.trim();
-      const res = await fetchApi(CLIENT_API.products, params);
+      const res = await fetchApi(PORTAL_API.products, params);
       setPayload(unwrap(res) || {});
     } catch (err) {
       setPayload(null);
-      setError(classifyProductLoadError(err, ApiError, CLIENT_API.products));
+      setError(classifyProductLoadError(err, ApiError, PORTAL_API.products));
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, CLIENT_API, fetchApi } from "../../api";
+import { ApiError, PORTAL_API, fetchApi } from "../../api";
 import { Modal } from "../../components/ui/Modal";
 import { StatusPill } from "../../components/ui/StatusPill";
 import { exportCsv, formatDate, unwrap } from "./portalUtils";
@@ -30,7 +30,8 @@ function Kpi({ label, value, meta }) {
 }
 
 /**
- * Client payment STATUS — GET /api/v1/client/payments (05E client-safe).
+ * Client payment STATUS — GET /api/portal/v1/payment-status (05E client-safe; the external
+ * Client API exposes the same contract as GET /api/v1/client/payments).
  * Separate from Withdrawals (/portal/v1/payments).
  */
 export function PortalPaymentStatusPage() {
@@ -62,21 +63,21 @@ export function PortalPaymentStatusPage() {
       if (filters.currency.trim()) params.currency = filters.currency.trim().toUpperCase();
       if (filters.paymentStatus.trim()) params.payment_status = filters.paymentStatus.trim();
 
-      const res = await fetchApi(CLIENT_API.payments, params);
+      const res = await fetchApi(PORTAL_API.paymentStatus, params);
       const data = unwrap(res);
       if (!data || typeof data !== "object") {
         setLoadError({
           kind: "api_error",
           message: "Unable to load payment status. Please try again.",
           status: null,
-          path: CLIENT_API.payments,
+          path: PORTAL_API.paymentStatus,
         });
         setPayload(null);
         return;
       }
       setPayload(data);
     } catch (err) {
-      setLoadError(classifyPaymentLoadError(err, ApiError, CLIENT_API.payments));
+      setLoadError(classifyPaymentLoadError(err, ApiError, PORTAL_API.paymentStatus));
       setPayload(null);
     } finally {
       setLoading(false);
@@ -105,7 +106,7 @@ export function PortalPaymentStatusPage() {
         <Link className="font-semibold underline" to="/portal/payments">
           Withdrawals
         </Link>
-        . Source: <code className="font-mono text-xs">GET /api/v1/client/payments</code>.
+        . Source: <code className="font-mono text-xs">GET /api/portal/v1/payment-status</code>.
       </div>
 
       <p className="text-xs text-slate-400">
