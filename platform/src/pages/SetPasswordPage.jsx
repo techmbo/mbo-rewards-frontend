@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { fetchApi, postApi } from "../api";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/FormControls";
+import { INVITE_ERRORS, classifyInviteError } from "./inviteErrors.js";
 
 export function SetPasswordPage() {
   const [params] = useSearchParams();
@@ -15,18 +16,27 @@ export function SetPasswordPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [errorKind, setErrorKind] = useState(null);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (!token) {
       setLoading(false);
-      setError("Missing invitation token.");
+      setErrorKind("missing");
+      setError(INVITE_ERRORS.missing);
       return;
     }
     setLoading(true);
-    fetchApi(`/auth/invite/${encodeURIComponent(token)}`)
+    // noStore: the token is in the path. The shared GET cache is mirrored into sessionStorage
+    // keyed by path, so a cached invite lookup would leave this single-use secret readable by any
+    // script on the origin for the rest of the session.
+    fetchApi(`/auth/invite/${encodeURIComponent(token)}`, {}, { noStore: true })
       .then((response) => setInvite(response.data ?? response))
-      .catch((err) => setError(err.message || "Invalid invitation."))
+      .catch((err) => {
+        const kind = classifyInviteError(err);
+        setErrorKind(kind);
+        setError(INVITE_ERRORS[kind]);
+      })
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -38,16 +48,25 @@ export function SetPasswordPage() {
     }
     setSubmitting(true);
     setError("");
+    setErrorKind(null);
     try {
       await postApi("/auth/set-password", { token, password });
       setSuccess(true);
+      // The invite is spent now; sending the client to login is the only way forward.
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
-      setError(err.message || "Could not set password.");
+      // The invite can expire or be consumed between page load and submit, so the same
+      // classification applies here — the lookup is not the only gate.
+      const kind = classifyInviteError(err);
+      setErrorKind(kind);
+      setError(kind === "unknown" ? err.message || INVITE_ERRORS.unknown : INVITE_ERRORS[kind]);
     } finally {
       setSubmitting(false);
     }
   }
+
+  // A dead invite cannot be retried on this page: hide the form rather than invite a failed submit.
+  const inviteDead = errorKind === "invalid" || errorKind === "expired" || errorKind === "missing";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -67,7 +86,7 @@ export function SetPasswordPage() {
           </p>
         ) : null}
 
-        {!loading && !error && invite && !success ? (
+        {!loading && !inviteDead && invite && !success ? (
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <p className="text-sm text-slate-700">
               Signed invitation for <strong>{invite.email}</strong>

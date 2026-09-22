@@ -91,11 +91,19 @@ async function throwIfNotOk(response, path) {
   });
 }
 
+/**
+ * GET helper.
+ *
+ * `noStore` is for requests whose URL or body is itself a secret. `skipCache` only bypasses the
+ * READ; the response is still written to the cache, and the cache is mirrored into sessionStorage
+ * keyed by path — so a single-use token in the path would outlive the page that used it. `noStore`
+ * skips the read, the in-flight map and the write, so nothing about the request is retained.
+ */
 export async function fetchApi(path, params = {}, options = {}) {
-  const { cacheTtlMs = DEFAULT_CACHE_TTL_MS, skipCache = false } = options;
+  const { cacheTtlMs = DEFAULT_CACHE_TTL_MS, skipCache = false, noStore = false } = options;
   const cacheKey = buildCacheKey(path, params);
 
-  if (!skipCache) {
+  if (!skipCache && !noStore) {
     const cached = readCacheEntry(cacheKey);
     if (isCacheFresh(cached, cacheTtlMs)) {
       return cached.data;
@@ -112,11 +120,11 @@ export async function fetchApi(path, params = {}, options = {}) {
     });
     await throwIfNotOk(response, path);
     const data = await response.json();
-    writeCacheEntry(cacheKey, data);
+    if (!noStore) writeCacheEntry(cacheKey, data);
     return data;
   })();
 
-  if (!skipCache) {
+  if (!skipCache && !noStore) {
     setInflightRequest(cacheKey, request);
   }
 
